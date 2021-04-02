@@ -1,0 +1,51 @@
+.wp-hosting-test {
+  position: relative; }
+  .wp-hosting-test-subtitle {
+    max-width: 500px;
+    margin-bottom: 0; }
+  .wp-hosting-test table {
+    margin: 0 0 20px 0; }
+    .wp-hosting-test table.results tr td:last-child {
+      width: 50px;
+      text-align: right; }
+      .wp-hosting-test table.results tr td:last-child a:first-child {
+        color: #b32d2e; }
+  .wp-hosting-test.loading form {
+    position: relative; }
+    .wp-hosting-test.loading form:after {
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      background: #f0f0f1;
+      opacity: 0.5;
+      content: ''; }
+  .wp-hosting-test-status {
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 0 0 20px 0;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    display: flex;
+    align-items: center;
+    padding: 5px; }
+    .wp-hosting-test-status li {
+      width: 20%;
+      margin: 0;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      border-radius: 3px;
+      margin: 0 4px;
+      justify-content: center;
+      padding: 5px 0; }
+      .wp-hosting-test-status li.done {
+        background: #00a32a;
+        color: #fff; }
+        .wp-hosting-test-status li.done .spinner {
+          display: none; }
+      .wp-hosting-test-status li .spinner {
+        margin: 0 5px 0 0; }
+
+/*# sourceMappingURL=admin.css.map */

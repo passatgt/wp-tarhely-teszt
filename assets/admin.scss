@@ -1,0 +1,77 @@
+.wp-hosting-test {
+  position: relative;
+
+  &-subtitle {
+    max-width: 500px;
+    margin-bottom: 0;
+  }
+
+  table {
+    margin:  0 0 20px 0;
+
+    &.results tr td:last-child {
+      width: 50px;
+      text-align: right;
+
+      a:first-child {
+        color: #b32d2e;
+      }
+    }
+  }
+
+  &.loading {
+
+    form {
+      position: relative;
+
+      &:after {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        background: #f0f0f1;
+        opacity: 0.5;
+        content: '';
+      }
+    }
+
+  }
+
+  &-status {
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 0 0 20px 0;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    display: flex;
+    align-items: center;
+    padding: 5px;
+
+    li {
+      width: 20%;
+      margin: 0;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      border-radius: 3px;
+      margin: 0 4px;
+      justify-content: center;
+      padding: 5px 0;
+
+      &.done {
+        background: #00a32a;
+        color: #fff;
+
+        .spinner {
+          display: none;
+        }
+      }
+
+      .spinner {
+        margin: 0 5px 0 0;
+      }
+    }
+  }
+
+}

@@ -12,23 +12,22 @@
  * @license MIT
  */
 
-/* Modified version for the wp-tarhelylista-test wordpress plugin */
+/* Modified version for the wp-tarhely-teszt wordpress plugin */
 
 // -----------------------------------------------------------------------------
 // Setup
 // -----------------------------------------------------------------------------
-set_time_limit(120); // 2 minutes
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! class_exists( 'WP_Tarhelylista_Teszt_Benchmark', false ) ) :
+if ( ! class_exists( 'WP_Tarhely_Teszt_Benchmark', false ) ) :
 
-	class WP_Tarhelylista_Teszt_Benchmark {
+	class WP_Tarhely_Teszt_Benchmark {
 		public $test_limit_1 = 500000;
 		public $test_limit_2 = 10000000;
-		public $test_limit_3 = 500;
+		public $test_limit_3 = 100;
 
     public function server_benchmark() {
 

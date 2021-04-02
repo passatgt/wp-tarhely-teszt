@@ -4,18 +4,19 @@ Plugin Name: WP Tárhely Teszt
 Plugin URI: https://tarhelylista.hu
 Description: Szerver és WordPress sebesség teszt
 Author: Viszt Péter
-Version: 1.0
+Version: 1.0.2
 WC requires at least: 3.0.0
 WC tested up to: 3.7.0
 */
 
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
 
-class WP_Tarhelylista_Teszt {
+class WP_Tarhely_Teszt {
   public $benchmark_tool = null;
   private $_server_benchmark_results;
   private $_wp_benchmark_results;
   protected static $_instance = null;
+  public static $version;
 
 	//Get main instance
 	public static function instance() {
@@ -27,17 +28,35 @@ class WP_Tarhelylista_Teszt {
 
   //Construct
 	public function __construct() {
+    self::$version = '1.0.2';
 
     //Benchmark helper
-    require_once( plugin_dir_path( __FILE__ ) . 'class-benchmark.php' );
-    $this->benchmark_tool = new WP_Tarhelylista_Teszt_Benchmark();
+    require_once( plugin_dir_path( __FILE__ ) . '/includes/class-benchmark.php' );
+    $this->benchmark_tool = new WP_Tarhely_Teszt_Benchmark();
 
     //Plugin loaded
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+
+    //WP benchmark ajax
+    add_action( 'wp_ajax_wp_hosting_test', array( $this, 'run_wp_hosting_test' ) );
+    add_action( 'wp_ajax_wp_hosting_test_save', array( $this, 'run_wp_hosting_test_save' ) );
+    add_action( 'wp_ajax_wp_hosting_test_delete', array( $this, 'run_wp_hosting_test_delete' ) );
+    add_action( 'wp_ajax_wp_hosting_test_edit', array( $this, 'run_wp_hosting_test_edit' ) );
+
+    //Admin JS
+		add_action( 'admin_init', array( $this, 'admin_js' ) );
+
   }
 
   public function init() {
     add_action('admin_menu', array( $this, 'create_menu' ));
+  }
+
+  //Add Admin CSS & JS
+  public function admin_js() {
+    $suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+    wp_enqueue_script( 'wp_hosting_test', plugins_url( '/assets/admin'.$suffix.'.js',__FILE__ ), array('jquery'), WP_Tarhely_Teszt::$version, TRUE );
+    wp_enqueue_style( 'wp_hosting_test', plugins_url( '/assets/admin.css',__FILE__ ), array(), WP_Tarhely_Teszt::$version );
   }
 
 	//Create submenu in Tools
@@ -47,133 +66,89 @@ class WP_Tarhelylista_Teszt {
 	}
 
   function generate_page_content() {
-    ?>
-    <div class="wrap">
-      <h1>Tárhely Teszt</h1>
-      <p style="max-width:750px;margin-bottom:0;">Ez a bővítmény ellenőrizni fogja különböző műveletek futtatását a szervereden és meghatároz egy futási időt. Kattints a gombra a teszt futtatásához. A teszt akár egy percig is eltarhat, légy türelemmel.</p>
-      <form method="post">
-  			<?php wp_nonce_field( 'run_test', 'wp_tarhelylista_teszt_nonce' ); ?>
-        <div style="display:flex">
-    			<?php submit_button( 'Szerver teszt futtatása', 'primary', 'wp_tarhelylista_teszt_server_run' ); ?>
-          <div style="width:20px"></div>
-          <?php submit_button( 'Wordpress teszt futtatása', 'primary', 'wp_tarhelylista_teszt_wp_run' ); ?>
-        </div>
-  		</form>
-
-      <?php if($this->_server_benchmark_results): ?>
-      <table class="widefat fixed" cellspacing="0" style="margin: 0 0 20px 0;">
-        <thead>
-          <tr>
-            <th>Teszt</th>
-            <th>Futási idő (másodperc)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Math</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['math']; ?></td>
-          </tr>
-          <tr>
-            <td>String Manipulation</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['string']; ?></td>
-          </tr>
-          <tr>
-            <td>Loops</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['loops']; ?></td>
-          </tr>
-          <tr>
-            <td>Conditionals</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['ifelse']; ?></td>
-          </tr>
-          <tr>
-            <td>Mysql Connect</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['mysql_connect']; ?></td>
-          </tr>
-          <tr>
-            <td>Mysql Select Database</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['mysql_select_db']; ?></td>
-          </tr>
-          <tr>
-            <td>Mysql Query Version</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['mysql_query_version']; ?></td>
-          </tr>
-          <tr>
-            <td>Mysql Query Benchmark</td>
-            <td><?php echo $this->_server_benchmark_results['benchmark']['mysql_query_benchmark']; ?></td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <th>Futási idő összesen (másodperc)</th>
-            <th><?php echo $this->_server_benchmark_results['benchmark']['total']; ?></th>
-          </tr>
-        </tfoot>
-      </table>
-      <?php endif; ?>
-
-      <?php if(get_option('wp_tarhelylista_result_server') || get_option('wp_tarhelylista_result_wp')): ?>
-        <table class="widefat fixed" cellspacing="0">
-          <thead>
-            <tr>
-              <th><strong>Eredmények</strong></th>
-              <th>Dátum</th>
-              <th>Futási idő(másodperc)</th>
-            </tr>
-          </thead>
-          <tfoot>
-            <?php if($server_results = get_option('wp_tarhelylista_result_server')): ?>
-              <?php foreach ($server_results as $key => $result): ?>
-                <tr>
-                  <?php if ($key === array_key_first($server_results)): ?>
-                    <td rowspan="<?php echo count($server_results); ?>"><strong>Szerver teszt</strong></td>
-                  <?php endif; ?>
-                  <td><?php echo date_i18n(get_option('date_format').' '.get_option('time_format'), $result['time']); ?></td>
-                  <td><?php echo esc_html($result['result']); ?></td>
-                </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
-            <?php if($wp_results = get_option('wp_tarhelylista_result_wp')): ?>
-              <?php foreach ($wp_results as $key => $result): ?>
-                <tr>
-                  <?php if ($key === array_key_first($wp_results)): ?>
-                    <td rowspan="<?php echo count($wp_results); ?>"><strong>Wordpress teszt</strong></td>
-                  <?php endif; ?>
-                  <td><?php echo date_i18n(get_option('date_format').' '.get_option('time_format'), $result['time']); ?></td>
-                  <td><?php echo esc_html($result['result']); ?></td>
-                </tr>
-              <?php endforeach; ?>
-            <?php endif; ?>
-          </tfoot>
-        </table>
-      <?php endif; ?>
-    </div>
-    <?php
+    include( dirname( __FILE__ ) . '/includes/views/html-benchmark.php' );
   }
 
+  //Runs for server benchmark
   public function process_page_submit() {
     if ( ! empty( $_POST['wp_tarhelylista_teszt_server_run'] ) ) {
       check_admin_referer( 'run_test', 'wp_tarhelylista_teszt_nonce' );
       $this->_server_benchmark_results = $this->benchmark_tool->server_benchmark();
-      $existing_results = get_option('wp_tarhelylista_result_server');
+      $existing_results = get_option('wp_tarhely_teszt_results_server');
       if(!$existing_results) $existing_results = array();
-      $existing_results[] = array(
-        'time' => current_time('timestamp'),
+      $existing_results[current_time('timestamp')] = array(
         'result' => $this->_server_benchmark_results['benchmark']['total']
       );
-      update_option('wp_tarhelylista_result_server', $existing_results);
-      add_action( 'admin_notices', array( $this, 'display_notice' ) );
-    } else if ( ! empty( $_POST['wp_tarhelylista_teszt_wp_run'] ) ) {
-      check_admin_referer( 'run_test', 'wp_tarhelylista_teszt_nonce' );
-      $this->_wp_benchmark_results = $this->benchmark_tool->wordpress_benchmark();
-      $existing_results = get_option('wp_tarhelylista_result_wp');
-      if(!$existing_results) $existing_results = array();
-      $existing_results[] = array(
-        'time' => current_time('timestamp'),
-        'result' => $this->_wp_benchmark_results['time']
-      );
-      update_option('wp_tarhelylista_result_wp', $existing_results);
+      update_option('wp_tarhely_teszt_results_server', $existing_results);
       add_action( 'admin_notices', array( $this, 'display_notice' ) );
     }
+  }
+
+  //Trigger wp benchmark via ajax
+  public function run_wp_hosting_test() {
+    check_ajax_referer( 'run_test', 'wp_tarhelylista_teszt_nonce' );
+    $results = $this->benchmark_tool->wordpress_benchmark();
+    wp_send_json_success($results);
+  }
+
+  //Runs when wp benchmark finished
+  public function run_wp_hosting_test_save() {
+    check_ajax_referer( 'run_test', 'wp_tarhelylista_teszt_nonce' );
+
+    //Find existing results
+    $existing_results = get_option('wp_tarhely_teszt_results_wp');
+    if(!$existing_results) $existing_results = array();
+
+    //Append new data
+    $existing_results[current_time('timestamp')] = array(
+      'result' => sanitize_text_field($_POST['total'])
+    );
+    update_option('wp_tarhely_teszt_results_wp', $existing_results);
+
+    //Return response
+    wp_send_json_success($existing_results);
+  }
+
+  //Runs when result needs to be deleted
+  public function run_wp_hosting_test_delete() {
+    check_ajax_referer( 'run_test', 'wp_tarhelylista_teszt_nonce' );
+
+    //Identify sample
+    $meta_key = 'wp_tarhely_teszt_results_wp';
+    if($_POST['type'] == 'server') $meta_key = 'wp_tarhely_teszt_results_server';
+
+    //Find existing results
+    $existing_results = get_option($meta_key);
+
+    //Remove
+    unset($existing_results[sanitize_text_field($_POST['index'])]);
+
+    //Save
+    update_option($meta_key, $existing_results);
+
+    //Return response
+    wp_send_json_success($existing_results);
+  }
+
+  //Runs when comment is made for a result
+  public function run_wp_hosting_test_edit() {
+    check_ajax_referer( 'run_test', 'wp_tarhelylista_teszt_nonce' );
+
+    //Identify sample
+    $meta_key = 'wp_tarhely_teszt_results_wp';
+    if($_POST['type'] == 'server') $meta_key = 'wp_tarhely_teszt_results_server';
+
+    //Find existing results
+    $existing_results = get_option($meta_key);
+
+    //Save note
+    $existing_results[sanitize_text_field($_POST['index'])]['note'] = sanitize_text_field($_POST['note']);
+
+    //Save
+    update_option($meta_key, $existing_results);
+
+    //Return response
+    wp_send_json_success($existing_results);
   }
 
   public function display_notice() {
@@ -186,7 +161,7 @@ class WP_Tarhelylista_Teszt {
 
 }
 
-function WP_Tarhelylista_Teszt() {
-  return WP_Tarhelylista_Teszt::instance();
+function WP_Tarhely_Teszt() {
+  return WP_Tarhely_Teszt::instance();
 }
-$GLOBALS['wp_tarhelylista_teszt'] = WP_Tarhelylista_Teszt();
+$GLOBALS['wp_tarhely_teszt'] = WP_Tarhely_Teszt();
