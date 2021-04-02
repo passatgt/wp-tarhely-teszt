@@ -21,8 +21,5 @@ Ez a bővítmény különféle PHP, SQL és WordPress sebességet ellenőriz
 
 == Changelog ==
 
-= 1.1 =
-* Store benchmark results
-
 = 1.0 =
 * First release of this extension
